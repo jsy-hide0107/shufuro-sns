@@ -92,6 +92,12 @@
 - 음원 후보: 「運命さがし」マカロニえんぴつ (2026년 11월 유행곡 목록 다수 등재). audioVolume 30 정도로 낮게
 - IG 음원 자동 지정(audioConfiguration)은 IG 비즈니스 계정 + Facebook 페이지 연결이 필요. 미확인
 
+## 7-8. GitHub·인스타 예약 (2026-11-17 13:46)
+- 공개 저장소 jsy-hide0107/shufuro-sns 생성(뽕수행님) → reel 템플릿·로고·media 업로드, raw URL로 Metricool 미디어 등록 성공
+- IG 릴스: 11/17 19:30 예약(autoPublish:false = 시간에 Metricool 앱 알림 → 뽕수행님이 IG 앱에서 음원 붙여 게시)
+- IG 음원 자동 지정 실패: Metricool이 IG 음원 카탈로그 403 → IG 비즈니스 계정 + Facebook 페이지 연결이 안 된 상태로 추정
+- 이후 영상: media/ 에 날짜_주제.mp4 로 push → raw URL로 예약
+
 ## 8. 다음 우선순위
 1. 첫 주 초안 피드백 받기 (가장 중요)
 2. IG 캐러셀 3개 제작·초안 등록
