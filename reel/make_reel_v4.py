@@ -10,9 +10,9 @@ from make_reel_v2 import (W, H, FPS, RED, YEL, BLUE, NAVY, WHITE, BLACK, F, outl
                           background, paste_scaled, layer)
 from PIL import ImageDraw
 
-SERIES = "今日の穴場ホワイト3社"
-THEME = "ユースエール認定（厚労省）"
-SOURCE = "出典：東京労働局 ユースエールPRシート／有価証券報告書"
+SERIES = "今日の隠れ優良企業3社"
+THEME = "中堅なのに大手級の待遇"
+SOURCE = "出典：有価証券報告書／各社公式採用ページ"
 IND_COL = {"エネルギー": (255, 140, 0), "IT・セキュリティ": (0, 170, 255), "メーカー": (40, 200, 120)}
 
 # name, industry, what(1행), stats[(label, value)]x4, feature, flow(選考ステップ 리스트, 확인된 것만; 없으면 [])
@@ -43,6 +43,9 @@ COMPANIES = [
      "東証スタンダード上場・平均勤続16.3年", ["面接重視（会社コメント）"], None),
 ]
 
+# 훅 4줄: 회마다 가장 강한 숫자/복지로 교체 (text, size, color)
+HOOK = [("知名度は低いけど", 80, WHITE), ("平均年収735万円", 120, YEL), ("大手級の待遇", 100, WHITE), ("の会社を3つ紹介", 84, RED)]
+
 T_HOOK, T_CARDS = 0.0, 3.0
 CARD = 6.0
 T_TABLE = T_CARDS + CARD * len(COMPANIES)
@@ -61,10 +64,7 @@ def footer(d, y=None):
 
 def scene_hook(t):
     img = background(t, "burst"); d = ImageDraw.Draw(img); top_bar(d)
-    for txt, y, sz, col, st in [("知名度は低いけど", 640, 80, WHITE, 0.05),
-                                 ("有給18.7日", 800, 130, YEL, 0.5),
-                                 ("残業 月2.3時間", 960, 100, WHITE, 1.0),
-                                 ("の会社を3つ紹介", 1130, 84, RED, 1.6)]:
+    for (txt, sz, col), y, st in zip(HOOK, (640, 800, 960, 1130), (0.05, 0.5, 1.0, 1.6)):
         L, ld = layer()
         outlined(ld, (W / 2, y), txt, sz, col, stroke=WHITE if col == RED else BLACK, sw=10)
         paste_scaled(img, L, pop(t, st))
