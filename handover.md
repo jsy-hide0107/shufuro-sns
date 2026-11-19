@@ -1,10 +1,10 @@
 # 슈프로 SNS 마케팅 — handover.md
 
-최종 업데이트: 2026-11-18
+최종 업데이트: 2026-11-19
 
 ## 1. 프로젝트 상태
 - 단계: **Phase 1 (정보로 팔로워 모으기) / 운영 Stage B (자동 예약, 2026-11-18 뽕수행님이 기획서에 직접 기재)**
-- 전체 진행률: 약 60% (Threads·IG·TikTok 예약 가동, 프로필 정비 완료. 영상 자동 생성은 미완)
+- 전체 진행률: 약 65% (Threads·IG·TikTok 예약 가동, 회차 빌더로 영상 제작 단축. 영상 자동 생성 트리거는 미완)
 - 기준 문서: Claude Docs「슈프로 SNS 마케팅 기획서」 https://claude.ai/artifact/A1Fz6boZx9z3imY2KFNUCA
   → 말투·비율·Stage 등 모든 규칙은 여기에 있다. 규칙이 바뀌면 이 문서를 고친다.
 
@@ -134,8 +134,22 @@
 - 새 예약 작업 「슈프로 스레드 댓글 응대 (브라우저)」 trig_015HQHH9QYtKD2CqzwZ8MqfE, 매일 22:13 JST, 이 컴퓨터 필요. 로그인 계정이 shufuro_acos인지 확인 후에만 답글, 아니면 보고만
 - 슈프로와 ProductBaton은 계정·기획서·예약 작업·repo 전부 분리 예정
 
+## 7-13. 2화 영상 + 회차 빌더 (2026-11-19 13:35)
+- 2화 = 목요일 「今日の急成長企業3社」(プレイド/セーフィー/ラクス). 데이터는 11/19 12:15 Threads 게시물(有報 + 공식 채용 페이지)과 동일
+- 새 스크립트 `reel/make_ep.py` + `reel/episodes/ep02_kyuseicho.py`
+  - 회차 파일에 OUT·SERIES·THEME·COMPANIES·HOOK만 쓰면 `python3 make_ep.py episodes/<파일>.py` 한 번으로
+    `media/<OUT>_ig.mp4`(BGM, TikTok용) / `_ig_sfx.mp4`(효과음만, IG용) / `_ig_cover.png` 생성 (약 45초)
+- 로고 3개 fetch_logo.py로 취득(전부 apple-touch-icon). 라쿠스 SVG는 cairosvg 미설치로 스킵됐지만 PNG로 대체됨
+- 예약: IG 릴스 11/19 19:30 (id 433758661, 음원 Go On / LAVLO audioId 1678817680010646, 볼륨 30, 커버 1900ms)
+  / TikTok 11/19 20:00 (id 433758606)
+- 주의: IG 음원은 곡명 검색이 후보 여러 개면 거부됨 → 숫자 audioId로 지정. 「Way To Go」는 이번엔 단일 매칭 안 됨
+- 주의: TikTok 예약은 tiktokData.title 필수
+- Threads 정리: 11/20 21:00 → 「機能を削った話」, 11/24 21:00 → 「SPI練習アプリ→管理アプリに作り直した話」 (실제 결정 기반)
+  - 이유: 21:00 = 自分の話 컨셉인데 질문글이 몰려 있었고, 11/20 12:15와 11/24가 같은 「社会人の先輩に聞きたい」였음
+
 ## 8. 다음 우선순위
 1. 앱스토어 링크 받기 → IG 링크는 모바일 앱에서만 수정 가능(뽕수행님), Threads는 웹에서 가능
-2. 영상 자동화: 매일 트리거가 공개 repo clone → make_reel_v4.py 렌더 → media push → IG+TikTok 예약
-3. 2화 영상(다음 3사) 제작 → IG+TikTok 동시 예약
-4. 댓글 인사이트를 기획서 12장 로그에 누적
+2. 영상 자동화: 매일 트리거가 공개 repo clone → `make_ep.py episodes/<회차>.py` 렌더 → media push → IG+TikTok 예약 (트리거 프롬프트 갱신 필요)
+3. 3화(11/20 금 = 특별한 복지 테마) 회차 파일 작성 → 렌더 → 예약. 새 회사는 선정 기준(28卒 채용·有報 연봉·공식 복지) 확인부터
+4. 11/19 IG·TikTok 게시 결과(조회·저장·공유) 확인 → 1화와 비교
+5. 댓글 인사이트를 기획서 12장 로그에 누적
