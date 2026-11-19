@@ -1,3 +1,4 @@
-frames*/
 *.wav
 __pycache__/
+frames*/
+reel/frames*/
