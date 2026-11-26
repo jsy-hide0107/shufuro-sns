@@ -1,0 +1,69 @@
+# 5화: NTT 그룹편 (3단 정보 레이아웃, 나레이션 = 본인 목소리 복제 / Qwen3-TTS 0.6B)
+OUT = "20261127_ntt_group"
+SOURCE = "出典：NTT発表(2025.3)・各社採用ページ・マイナビ/リクナビ・OpenWork（2023〜26年度）"
+LOGO = "シュフロ"
+SPEED = 1.15
+
+TABLES = {
+    "big": dict(
+        title="① 大手5社",
+        cols=["会社", "初任給(大卒)", "残業/月", "勤務地"],
+        widths=[330, 230, 150, 290],
+        rows=[
+            ["NTTデータ", "30.0万円", "29.1h", "首都圏中心"],
+            ["NTT東日本", "34.0万円※", "22.9h", "東日本17都道県"],
+            ["NTT西日本", "29.5万円〜", "—", "西日本＋東京"],
+            ["NTTドコモ", "30万円〜※2", "23.6h＊", "全国の支社"],
+            ["NTTドコモビジネス", "30万円〜※2", "25.4h＊", "本社：大手町"],
+        ],
+        note="※一律手当4.02万円込み　※2 NTT発表「主要会社は大卒標準30万円以上」　＊OpenWork社員クチコミ平均　—：公開データなし",
+    ),
+    "sub": dict(
+        title="② 知る人ぞ知る子会社5社",
+        cols=["会社", "初任給(大卒)", "残業/月", "ひとこと"],
+        widths=[400, 200, 140, 260],
+        rows=[
+            ["NTTアドバンステクノロジ", "25.3万円", "15.9h", "NTT研究所と連携"],
+            ["ドコモ・テクノロジ", "23.7万円〜", "—", "転勤なし"],
+            ["NTTデータカスタマサービス", "24.5万円", "22.8h", "有給18.1日"],
+            ["ドコモビジネスエンジニアリング", "—", "17.2h", "平均勤続18.7年"],
+            ["NTTテクノクロス", "—", "—", "平均勤続18年"],
+        ],
+        note="初任給：アドバンステクノロジ2027年予定・カスタマサービス2025年実績　—：公開データなし",
+    ),
+    "region": dict(
+        title="③ 地域で働ける3社",
+        cols=["会社", "エリア", "ポイント"],
+        widths=[360, 160, 480],
+        rows=[
+            ["NTTデータ九州", "九州", "残業21.9h・年休120日以上"],
+            ["NTTデータ関西", "大阪", "平均勤続12.9年"],
+            ["NTTデータ北陸", "北陸", "東京・富山・石川・福井"],
+        ],
+        note="出典：各社採用ページ（リクナビ・マイナビ掲載）",
+    ),
+}
+
+SHOTS = [
+    dict(id="01", scene="intro", kind="headline", label="NTTグループ", l1="初任給も残業も", l2="会社ごとに違う", kw="違う",
+         sub="NTTグループ、名前は同じでも初任給も残業もけっこう違うんです。", sfx="notify"),
+    dict(id="02", scene="intro", kind="cards", title="今日の順番", items=["大手 5社", "知る人ぞ知る子会社 5社", "地域の会社 3社"], step=True,
+         sub="今日は大手5社、子会社5社、地域の会社3社の順番で紹介します。", sfx="click"),
+    dict(id="03", scene="big", kind="table", table="big", sub="まずは、大手5社から見ていきます。", sfx="whoosh"),
+    dict(id="04", scene="big", kind="table", table="big", hl_col=1,
+         sub="2026年入社から、主要会社の初任給は大卒で月30万円以上に。", sfx="register"),
+    dict(id="05", scene="big", kind="table", table="big", hl_rows=[0, 1], hl_col=2,
+         sub="残業はNTT東日本が月22.9時間、NTTデータが29.1時間。", sfx="click"),
+    dict(id="06", scene="big", kind="cards", title="選考フロー（NTT東日本の例）", items=["ES・Webテスト", "面接（複数回）", "内々定"], step=True,
+         sub="選考はESとWebテストのあと、面接が何回かあります。", sfx="click"),
+    dict(id="07", scene="sub", kind="table", table="sub", sub="次は、名前は地味でも働きやすい子会社5社。", sfx="whoosh"),
+    dict(id="08", scene="sub", kind="table", table="sub", hl_rows=[0],
+         sub="NTTアドバンステクノロジは、残業が月15.9時間。", sfx="click"),
+    dict(id="09", scene="sub", kind="table", table="sub", hl_rows=[1],
+         sub="ドコモ・テクノロジは転勤なしで、勤務地は東京と神奈川だけ。", sfx="click"),
+    dict(id="10", scene="region", kind="table", table="region", sub="最後は、地元で働ける地域の会社3社。", sfx="whoosh"),
+    dict(id="11", scene="region", kind="table", table="region", hl_rows=[0],
+         sub="NTTデータ九州は、年間休日が120日以上。", sfx="click"),
+    dict(id="12", scene="cta", kind="headline", label="保存してあとで見返そう", l1="選考の管理は", l2="シュフロで", kw="シュフロ",
+         sub="気になる会社は保存して、選考の管理はシュフロでどうぞ。", sfx="notify"),
+]
