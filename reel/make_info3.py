@@ -139,13 +139,49 @@ def table(d, y, title, cols, rows, widths, hl_rows, hl_col, note):
     for part in note.split("　"):
         if part: d.text((60, ny), part, font=F(26, True), fill=(230, 235, 245), anchor="lm"); ny += 38
 
+def flow(d, y, fl, hl_rows, t_local):
+    d.text((60, y), fl["title"], font=F(44), fill=YEL, anchor="lm")
+    d.text((60, y + 46), fl["sub"], font=F(24, True), fill=(220, 228, 245), anchor="lm")
+    y += 84; rh = 162
+    for i, r in enumerate(fl["rows"]):
+        app = min(1, max(0, (t_local - i * 0.12) / 0.25))   # 위에서부터 순서대로 등장
+        if app <= 0: continue
+        yy = y + i * rh; on = i in hl_rows
+        x0 = int(40 - (1 - app) * 60)
+        d.rounded_rectangle([x0, yy + 6, x0 + 1000, yy + rh - 6], radius=18, fill=(255, 241, 180) if on else (255, 255, 255))
+        d.ellipse([x0 + 18, yy + 26, x0 + 78, yy + 86], fill=(230, 160, 0) if i == 0 else (40, 60, 110))
+        d.text((x0 + 48, yy + 56), str(i + 1), font=F(36), fill=WHITE, anchor="mm")
+        lg = logo_for(r["name"], 230, 36)
+        if lg is not None:
+            CANVAS["cv"].paste(lg, (x0 + 96, yy + 22), lg)
+            d.text((x0 + 96, yy + 78), r["name"], font=F(24, True), fill=(40, 40, 50), anchor="lm")
+        else:
+            d.text((x0 + 96, yy + 52), r["name"], font=F(36), fill=(20, 40, 90), anchor="lm")
+        d.text((x0 + 990, yy + 52), r["score"], font=F(30, True), fill=(200, 30, 40), anchor="rm")
+        # 선고 단계 칩
+        cx = x0 + 96; cy = yy + 122; f = F(24, True)
+        for k, st in enumerate(r["steps"]):
+            w_ = tw(d, st, f) + 26
+            if cx + w_ > x0 + 990: break
+            col = (255, 225, 120) if ("GD" in st or "AI" in st) else (232, 238, 250)
+            d.rounded_rectangle([cx, cy - 18, cx + w_, cy + 18], radius=16, fill=col)
+            d.text((cx + w_ // 2, cy), st, font=f, fill=(30, 30, 40), anchor="mm"); cx += w_
+            if k < len(r["steps"]) - 1:
+                d.text((cx + 12, cy), "›", font=F(28, True), fill=(120, 120, 135), anchor="mm"); cx += 24
+    ny = y + len(fl["rows"]) * rh + 20
+    for part in fl["note"].split("　"):
+        if part: d.text((60, ny), part, font=F(24, True), fill=(230, 235, 245), anchor="lm"); ny += 34
+
 def wrap(text, n):
     out, cur = [], ""
-    for ch in text:
+    for i, ch in enumerate(text):
         cur += ch
-        if len(cur) >= n and ch in "、。，！？ " or len(cur) >= n + 4:
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if (len(cur) >= n and ch in "、。，！？ " or len(cur) >= n + 4) and nxt not in "、。！？」）":
             out.append(cur); cur = ""
-    if cur: out.append(cur)
+    if cur:
+        if out and len(cur) <= 2: out[-1] += cur
+        else: out.append(cur)
     return out
 
 def karaoke(d, text, prog):
@@ -159,7 +195,9 @@ def karaoke(d, text, prog):
             x += tw(d, ch, f); k += 1
 
 def fixed(d, source, logo):
-    d.text((36, 40), source, font=F(22, True), fill=(150, 150, 158), anchor="lm")
+    f = F(22, True)
+    while tw(d, source, f) > W - 72 and f.size > 14: f = F(f.size - 1, True)
+    d.text((36, 40), source, font=f, fill=(200, 205, 220), anchor="lm")
     d.text((W // 2, 1868), logo, font=F(40), fill=YEL, anchor="mm")
 
 def wav_len(p):
@@ -200,6 +238,10 @@ def main(ep_path, work):
         elif kind == "table":
             tb = ep.TABLES[sh["table"]]; CANVAS["cv"] = cv
             table(d, 470, tb["title"], tb["cols"], tb["rows"], tb["widths"], sh.get("hl_rows", []), sh.get("hl_col"), tb["note"])
+        elif kind == "flow":
+            CANVAS["cv"] = cv
+            fst = min(s_ for s_, _, x in timeline if x.get("flow") == sh["flow"])
+            flow(d, 470, ep.FLOWS[sh["flow"]], sh.get("hl_rows", []), tt - fst)
         karaoke(d, sh["sub"], prog)
         fixed(d, ep.SOURCE, ep.LOGO)
         cv.save(os.path.join(fd, f"f{fi:05d}.png"))

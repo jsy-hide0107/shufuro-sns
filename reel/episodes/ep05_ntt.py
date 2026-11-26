@@ -1,8 +1,9 @@
 # 5화: NTT 그룹편 (3단 정보 레이아웃, 나레이션 = 본인 목소리 복제 / Qwen3-TTS 0.6B)
 OUT = "20261127_ntt_group"
-SOURCE = "出典：NTT発表(2025.3)・各社採用ページ・マイナビ/リクナビ・OpenWork（2023〜26年度）"
+SOURCE = "出典：NTT発表・各社採用ページ・マイナビ/リクナビ・OpenWork・外資就活ドットコム・就活の教科書"
 LOGO = "シュフロ"
-SPEED = 1.15
+SPEED = 1.3
+GAP = 0.12
 
 TABLES = {
     "big": dict(
@@ -44,6 +45,21 @@ TABLES = {
     ),
 }
 
+FLOWS = {
+    "big": dict(
+        title="選考フロー（就職偏差値が高い順）",
+        sub="※偏差値は就活の教科書の非公式な目安",
+        rows=[
+            dict(name="NTTドコモ", score="偏差値65", steps=["ES", "SPI", "AI面接", "面接", "面接"]),
+            dict(name="NTTデータ", score="偏差値63", steps=["ES", "SPI", "面接", "GD/ジョブ", "最終"]),
+            dict(name="NTTドコモビジネス", score="偏差値61", steps=["体験記が少なく省略"]),
+            dict(name="NTT東日本", score="偏差値60", steps=["ES", "Webテスト", "面接（複数回）"]),
+            dict(name="NTT西日本", score="偏差値59", steps=["ES", "玉手箱", "GD", "面接", "面接"]),
+        ],
+        note="選考：外資就活ドットコム27卒体験記・NTT東日本募集要項　インターン優遇で一部免除あり",
+    ),
+}
+
 SHOTS = [
     dict(id="01", scene="intro", kind="headline", label="NTTグループ", l1="初任給も残業も", l2="会社ごとに違う", kw="違う",
          sub="NTTグループ、名前は同じでも初任給も残業もけっこう違うんです。", sfx="notify"),
@@ -54,8 +70,9 @@ SHOTS = [
          sub="2026年入社から、主要会社の初任給は大卒で月30万円以上に。", sfx="register"),
     dict(id="05", scene="big", kind="table", table="big", hl_rows=[0, 1], hl_col=2,
          sub="残業はNTT東日本が月22.9時間、NTTデータが29.1時間。", sfx="click"),
-    dict(id="06", scene="big", kind="cards", title="選考フロー（NTT東日本の例）", items=["ES・Webテスト", "面接（複数回）", "内々定"], step=True,
-         sub="選考はESとWebテストのあと、面接が何回かあります。", sfx="click"),
+    dict(id="06", scene="big", kind="flow", flow="big", sub="選考の流れは会社ごとにけっこう違います。就職偏差値が高い順に並べました。", sfx="whoosh"),
+    dict(id="06b", scene="big", kind="flow", flow="big", hl_rows=[0], sub="いちばん上のドコモは、AI面接もふくめて面接が3回。", sfx="click"),
+    dict(id="06c", scene="big", kind="flow", flow="big", hl_rows=[4], sub="西日本は、玉手箱のあとにグループディスカッションがあります。", sfx="click"),
     dict(id="07", scene="sub", kind="table", table="sub", sub="次は、名前は地味でも働きやすい子会社5社。", sfx="whoosh"),
     dict(id="08", scene="sub", kind="table", table="sub", hl_rows=[0],
          sub="NTTアドバンステクノロジは、残業が月15.9時間。", sfx="click"),
