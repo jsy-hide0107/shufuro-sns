@@ -173,7 +173,7 @@ def main(ep_path, work):
     timeline = []; t = 0.4
     for sh in ep.SHOTS:
         src = os.path.join(work, "lines", sh["id"] + ".wav"); dst = os.path.join(work, "fast", sh["id"] + ".wav")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-af", f"atempo={SPEED},silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse", "-ar", "44100", "-ac", "1", dst], check=True)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-af", f"atempo={SPEED},loudnorm=I=-14:TP=-1.5:LRA=7,silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse", "-ar", "44100", "-ac", "1", dst], check=True)
         dur = wav_len(dst); timeline.append((t, dur, sh)); t += dur + GAP
     total = t + 0.6
     # 2) 프레임
@@ -211,14 +211,14 @@ def main(ep_path, work):
         o = int(st * SR); mix[o:o + len(a)] += a * 1.0
         if sh.get("sfx"):
             s = sfx(sh["sfx"], SR); o2 = max(0, int((st - 0.12) * SR)); mix[o2:o2 + len(s)] += s
-    mix += bgm(len(mix), SR) * 0.06
+    mix += bgm(len(mix), SR) * 0.035
     mix = np.clip(mix / max(1.0, np.abs(mix).max() / 0.95), -1, 1)
     ap = os.path.join(work, "audio.wav")
     with wave.open(ap, "w") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes((mix * 32767).astype(np.int16).tobytes())
     out = os.path.join(work, ep.OUT + ".mp4")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-framerate", str(FPS), "-i", os.path.join(fd, "f%05d.png"), "-i", ap,
-                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-shortest", out], check=True)
+                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-af", "loudnorm=I=-14:TP=-1.0:LRA=9", "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-shortest", out], check=True)
     print("OUT", out, round(total, 1), "s")
     return out, timeline
 
@@ -228,8 +228,18 @@ def env(n, a, r, SR):
     if nr: e[-nr:] = np.linspace(1, 0, nr)
     return e
 
+def pluck(freqs, dur, SR, vol):
+    n = int(dur * SR); tt = np.arange(n) / SR
+    y = sum(np.sin(2 * np.pi * f * tt) * np.exp(-tt * 9) for f in freqs) / len(freqs)
+    a = int(0.004 * SR); y[:a] *= np.linspace(0, 1, a)
+    return (y * vol).astype(np.float32)
+
 def sfx(kind, SR):
     rng = np.random.default_rng(1)
+    if kind in ("click", "register"):   # 부드러운 '띵' (강조)
+        return pluck((1568, 2349), 0.35, SR, 0.16)
+    if kind == "whoosh":                 # 섹션 전환: 올라가는 두 음
+        return np.concatenate([pluck((784, 1175), 0.12, SR, 0.13), pluck((1047, 1568), 0.3, SR, 0.14)])
     if kind == "click":
         n = int(0.04 * SR); return (rng.standard_normal(n) * env(n, 0.001, 0.03, SR) * 0.25).astype(np.float32)
     if kind == "notify":
