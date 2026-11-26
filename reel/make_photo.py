@@ -1,0 +1,252 @@
+"""
+シュフロ 실사 사진 릴스 렌더러 (ProductBaton 무신사 편 = 티이유식 레이아웃을 베이스로)
+- 위 ~55%: 실사 사진(Pexels 등) — 컷마다 펀치인 → 느린 줌, 아래로 어두운 그라데이션
+- 가운데: 라벨 → 헤드라인 2줄([ ] = 노랑 키워드) → 노란 밑줄 / 번호 카드 단계 공개
+- 아래: 노래방식 자막(회색→흰색)
+- 고정: 출처(사진 오른쪽 아래), 브랜드(맨 아래)
+- 소리: 나레이션 + 로파이 BGM(나레이션 중 덕킹, 들리게) + 휙/띵/쿵
+사용: python make_photo.py episodes/ep07_es_rush.py /tmp/ep7
+work 에 lines/NN.wav, photos/<pexels id>.jpg 필요
+"""
+import sys, os, subprocess, importlib.util, wave, re
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+W, H, FPS = 1080, 1920, 30
+BG = (13, 13, 17); YEL = (255, 206, 64); WHITE = (255, 255, 255); GRAY = (138, 138, 148); DIM = (88, 88, 98)
+FB = "/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc"
+FM = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
+_fc = {}
+def F(size, black=True):
+    k = (size, black)
+    if k not in _fc: _fc[k] = ImageFont.truetype(FB if black else FM, size, index=0)
+    return _fc[k]
+
+def load_ep(p):
+    s = importlib.util.spec_from_file_location("ep", p); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
+
+def ease(x): x = min(1, max(0, x)); return 1 - (1 - x) ** 3
+def back(x):
+    x = min(1, max(0, x)); c = 1.7; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2
+
+PH = 1060  # 사진 영역 높이
+_ph = {}
+def photo(work, pid):
+    if pid not in _ph:
+        im = Image.open(f"{work}/photos/{pid}.jpg").convert("RGB")
+        s = max(W * 1.2 / im.width, PH * 1.2 / im.height)
+        _ph[pid] = im.resize((int(im.width * s), int(im.height * s)), Image.LANCZOS)
+    return _ph[pid]
+
+ys = np.linspace(0, 1, PH)[:, None, None]
+FADE = np.clip(1 - np.clip((ys - 0.62) / 0.38, 0, 1) ** 1.4, 0, 1).astype(np.float32)
+TOPSH = np.clip(0.55 + ys / 0.12 * 0.45, 0, 1).astype(np.float32)
+def draw_photo(cv, work, pid, tl):
+    big = photo(work, pid)
+    z = (1.12 - 0.10 * ease(tl / 0.35)) + 0.05 * min(1, tl / 6)   # 펀치인 후 느린 줌
+    cw, ch = W * 1.2 / z, PH * 1.2 / z
+    sx = big.width / (W * 1.2); cw *= sx; ch *= sx
+    l = (big.width - cw) / 2; t = (big.height - ch) * 0.42
+    crop = big.crop((int(l), int(t), int(l + cw), int(t + ch))).resize((W, PH), Image.BILINEAR)
+    a = np.asarray(crop, np.float32) * FADE * TOPSH + np.array(BG, np.float32) * (1 - FADE)
+    cv.paste(Image.fromarray(a.astype(np.uint8)), (0, 0))
+
+def tw(f, s): return f.getlength(s)
+def parse(s):  # "[kw]" 강조
+    out = []
+    for part in re.split(r"(\[[^\]]+\])", s):
+        if part: out.append((part.strip("[]"), part.startswith("[")))
+    return out
+
+def headline(d, label, l1, l2, tl, slam=False):
+    d.text((70, 1098), label, font=F(30, False), fill=GRAY, anchor="ls")
+    for k, line in enumerate((l1, l2)):
+        p = ease((tl - k * 0.08) / 0.3)
+        if p <= 0: continue
+        size = 92
+        parts = parse(line); plain = "".join(s for s, _ in parts)
+        while tw(F(size), plain) > W - 140: size -= 4
+        f = F(size); x = 70; y = 1205 + k * 118 + (1 - p) * 30
+        for s, hl in parts:
+            if hl and slam and k == 1:
+                sc = back(tl / 0.35); ff = F(max(10, int(size * (0.6 + 0.4 * sc))))
+                d.text((x, y), s, font=ff, fill=YEL, anchor="ls"); x += tw(ff, s)
+            else:
+                d.text((x, y), s, font=f, fill=YEL if hl else WHITE, anchor="ls"); x += tw(f, s)
+    uw = 90 * ease((tl - 0.2) / 0.3)
+    if uw > 1: d.rectangle((70, 1370, 70 + uw, 1376), fill=YEL)
+
+def cards(d, items, active, tl):
+    y0 = 1080
+    for i, (num, title, sub) in enumerate(items):
+        y = y0 + i * 122
+        on = i == active; done = i < active
+        d.text((70, y + 52), num, font=F(30, False), fill=YEL if on else DIM, anchor="ls")
+        if i > active:
+            d.text((140, y + 56), "・ ・ ・", font=F(44), fill=DIM, anchor="ls")
+        else:
+            p = ease(tl / 0.3) if on else 1
+            d.text((140 + (1 - p) * 40, y + 58), title, font=F(54 if on else 46), fill=YEL if on else (200, 200, 208), anchor="ls")
+            d.text((W - 70, y + 50), sub, font=F(28, False), fill=YEL if on else GRAY, anchor="rs")
+        d.line((70, y + 92, W - 70, y + 92), fill=(48, 48, 56), width=2)
+
+def wrap(text, n=14):
+    out, cur = [], ""
+    for i, ch in enumerate(text):
+        cur += ch; nxt = text[i + 1] if i + 1 < len(text) else ""
+        if (len(cur) >= n and ch in "、。，！？ 」" or len(cur) >= n + 3) and nxt not in "、。！？」）ー":
+            out.append(cur); cur = ""
+    if cur:
+        if out and len(cur) <= 2: out[-1] += cur
+        else: out.append(cur)
+    return out
+
+def karaoke(d, text, prog):
+    f = F(54); lines = wrap(text); lit = int(len(text) * prog + 0.5); k = 0
+    y0 = 1640 - (len(lines) - 1) * 40
+    for li, line in enumerate(lines):
+        x = (W - tw(f, line)) / 2; y = y0 + li * 80
+        for ch in line:
+            d.text((x, y), ch, font=f, fill=WHITE if k < lit else (92, 92, 102), anchor="lm"); x += tw(f, ch); k += 1
+
+def fixed(d, source, brand):
+    d.text((W - 40, PH - 22), source, font=F(22, False), fill=(170, 170, 180), anchor="rs")
+    d.text((W // 2, 1860), brand, font=F(30, False), fill=(120, 120, 130), anchor="mm")
+
+def end_card(d, tl):
+    p = ease(tl / 0.4)
+    d.text((W // 2, 640 + (1 - p) * 40), "28卒の", font=F(70, False), fill=GRAY, anchor="mm")
+    d.text((W // 2, 780 + (1 - p) * 40), "今週やること", font=F(120), fill=YEL, anchor="mm")
+    d.text((W // 2, 930), "毎週まとめてます", font=F(64), fill=WHITE, anchor="mm")
+    if tl > 0.6:
+        d.rounded_rectangle((250, 1110, W - 250, 1230), 60, fill=YEL)
+        d.text((W // 2, 1170), "フォローする", font=F(56), fill=BG, anchor="mm")
+    d.text((W // 2, 1330), "@shufuro_acos", font=F(42, False), fill=GRAY, anchor="mm")
+
+def wav(p):
+    with wave.open(p) as w: return np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32) / 32768
+
+# ---------- 소리 ----------
+def tone(f, dur, SR, decay=6.0, vol=0.2):
+    t = np.arange(int(dur * SR)) / SR; y = np.sin(2 * np.pi * f * t) * np.exp(-t * decay)
+    a = int(0.004 * SR); y[:a] *= np.linspace(0, 1, a); return (y * vol).astype(np.float32)
+
+def sfx(kind, SR):
+    rng = np.random.default_rng(3)
+    if kind == "whoosh":
+        n = int(0.32 * SR); x = rng.standard_normal(n)
+        x = np.convolve(x, np.ones(18) / 18, "same") * np.sin(np.linspace(0, np.pi, n)) ** 2
+        return (x * 0.5).astype(np.float32)
+    if kind == "ding": return tone(1568, 0.5, SR, 7, 0.16) + tone(2349, 0.5, SR, 9, 0.08)
+    if kind == "impact":
+        t = np.arange(int(0.45 * SR)) / SR
+        y = np.sin(2 * np.pi * (90 - 50 * t) * t) * np.exp(-t * 9) * 0.6
+        y[:int(0.02 * SR)] += rng.standard_normal(int(0.02 * SR)) * 0.15
+        return y.astype(np.float32)
+    if kind == "pop": return tone(880, 0.12, SR, 30, 0.18) + tone(1320, 0.12, SR, 30, 0.1)
+    return np.zeros(1, np.float32)
+
+def lofi(n, SR, bpm=88):
+    """로파이 비트: 킥·스네어·하이햇·부드러운 코드·베이스 (자체 합성, 저작권 없음)"""
+    beat = 60 / bpm; y = np.zeros(n, np.float32); rng = np.random.default_rng(5)
+    chords = [(261.6, 329.6, 392.0, 493.9), (220.0, 261.6, 329.6, 392.0), (174.6, 220.0, 261.6, 329.6), (196.0, 246.9, 293.7, 349.2)]
+    bass = [65.4, 55.0, 43.7, 49.0]
+    def add(sig, at):
+        o = int(at * SR)
+        if o >= n: return
+        e = min(n, o + len(sig)); y[o:e] += sig[:e - o]
+    bars = int(n / SR / (beat * 4)) + 1
+    for b in range(bars):
+        t0 = b * beat * 4; c = chords[b % 4]
+        tt = np.arange(int(beat * 4 * SR)) / SR
+        pad = sum(np.sin(2 * np.pi * f * tt) + 0.3 * np.sin(4 * np.pi * f * tt) for f in c) / 4
+        pad *= (1 - np.exp(-tt * 8)) * np.exp(-tt * 0.35) * 0.16
+        add(pad.astype(np.float32), t0)
+        for k in range(4):  # 베이스·킥·스네어
+            bt = t0 + k * beat
+            if k in (0, 2):
+                tk = np.arange(int(0.3 * SR)) / SR
+                add((np.sin(2 * np.pi * (110 * np.exp(-tk * 18) + 45) * tk) * np.exp(-tk * 9) * 0.55).astype(np.float32), bt)
+                tb = np.arange(int(beat * 1.8 * SR)) / SR
+                add((np.sin(2 * np.pi * bass[b % 4] * tb) * np.exp(-tb * 1.5) * 0.35).astype(np.float32), bt)
+            else:
+                ns = int(0.18 * SR); s = rng.standard_normal(ns) * np.exp(-np.arange(ns) / SR * 22) * 0.22
+                add(np.convolve(s, [0.5, 0.5], "same").astype(np.float32), bt)
+            for h in (0, 0.5):  # 하이햇
+                nh = int(0.05 * SR); hh = np.diff(rng.standard_normal(nh + 1)) * np.exp(-np.arange(nh) / SR * 70) * (0.07 if h else 0.1)
+                add(hh.astype(np.float32), bt + h * beat + (0.02 if h else 0))
+    return y / max(1e-6, np.abs(y).max()) * 0.9
+
+# ---------- 메인 ----------
+def main(ep_path, work):
+    ep = load_ep(ep_path)
+    os.makedirs(f"{work}/fast", exist_ok=True)
+    tl = []; t = 0.15
+    for L in ep.LINES:
+        src, dst = f"{work}/lines/{L['id']}.wav", f"{work}/fast/{L['id']}.wav"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-af",
+                        f"asetrate=24000*{ep.PITCH},aresample=24000,atempo={ep.SPEED / ep.PITCH:.4f},"
+                        "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,"
+                        "loudnorm=I=-14:TP=-1.5:LRA=7", "-ar", "44100", "-ac", "1", dst], check=True)
+        a = wav(dst); d = len(a) / 44100
+        tl.append(dict(L=L, st=t, du=d)); t += d + ep.GAP
+    total = t + 1.4
+    # 자막 조각 타이밍(글자 수 비례)
+    for e in tl:
+        caps = e["L"]["caps"] or [""]; w = [max(1, len(c)) for c in caps]; cum = np.cumsum([0] + w) / sum(w)
+        e["cap_t"] = [e["st"] + e["du"] * c for c in cum[:-1]]
+    nfr = int(total * FPS)
+    ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
+                           "-c:v", "libx264", "-preset", "veryfast", "-crf", "19", "-pix_fmt", "yuv420p", f"{work}/video.mp4"], stdin=subprocess.PIPE)
+    for fi in range(nfr):
+        tt = fi / FPS
+        cur = tl[0]
+        for e in tl:
+            if tt >= e["st"] - 0.05: cur = e
+        L = cur["L"]; lt = tt - cur["st"]
+        cv = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(cv)
+        if L["img"] == "END":
+            end_card(d, lt)
+        else:
+            # 같은 사진이 이어지면 줌 이어감, 카드 묶음은 묶음 시작 기준
+            draw_photo(cv, work, ep.PHOTOS[L["img"]], lt); d = ImageDraw.Draw(cv)
+            if "cards" in L:
+                cards(d, ep.CARDS, L["cards"] - 1, lt)
+            elif "head" in L:
+                headline(d, L["label"], *L["head"], lt, slam=bool(L.get("slam")))
+            fixed(d, ep.SOURCE, ep.BRAND)
+        # 자막
+        caps = L["caps"]
+        if caps:
+            j = max([i for i, c0 in enumerate(cur["cap_t"]) if tt >= c0 - 0.05] or [0])
+            nxt = cur["cap_t"][j + 1] if j + 1 < len(caps) else cur["st"] + cur["du"]
+            prog = (tt - cur["cap_t"][j]) / max(0.2, nxt - cur["cap_t"][j])
+            karaoke(d, caps[j], min(1, max(0, prog)))
+        ff.stdin.write(cv.tobytes())
+    ff.stdin.close(); ff.wait()
+    # 소리
+    SR = 44100; n = int(total * SR) + SR
+    vo = np.zeros(n, np.float32); fx = np.zeros(n, np.float32)
+    def put(buf, sig, at):
+        o = max(0, int(at * SR)); e = min(n, o + len(sig)); buf[o:e] += sig[:e - o]
+    for k, e in enumerate(tl):
+        put(vo, wav(f"{work}/fast/{e['L']['id']}.wav"), e["st"])
+        if k > 0: put(fx, sfx("whoosh", SR), e["st"] - 0.14)
+        if "ding" in e["L"]: put(fx, sfx("ding", SR), e["st"] + 0.05)
+        if e["L"].get("slam"): put(fx, sfx("impact", SR), e["cap_t"][list(e["L"]["slam"])[0]])
+        if "cards" in e["L"]: put(fx, sfx("pop", SR), e["st"])
+    env = np.convolve((np.abs(vo) > 0.02).astype(np.float32), np.ones(int(0.25 * SR)) / int(0.25 * SR), "same")
+    duck = 1 - 0.55 * np.clip(env * 3, 0, 1)
+    bg = lofi(n, SR) * 0.30 * duck
+    fade = np.ones(n, np.float32); fl = int(1.2 * SR); fade[-fl:] = np.linspace(1, 0, fl)
+    mix = (vo * 1.0 + fx * 0.8 + bg) * fade
+    mix = np.clip(mix / max(1.0, np.abs(mix).max() / 0.95), -1, 1)
+    with wave.open(f"{work}/audio.wav", "w") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes((mix * 32767).astype(np.int16).tobytes())
+    out = f"{work}/{ep.OUT}.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f"{work}/video.mp4", "-i", f"{work}/audio.wav", "-c:v", "copy",
+                    "-af", "loudnorm=I=-14:TP=-1.0:LRA=9", "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-shortest", out], check=True)
+    print("OUT", out, round(total, 1), "s")
+
+if __name__ == "__main__":
+    main(sys.argv[1], sys.argv[2])
