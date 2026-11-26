@@ -3,6 +3,7 @@ OUT = "20261127_ntt_group"
 SOURCE = "出典：NTT発表・各社採用ページ・マイナビ/リクナビ・OpenWork・外資就活ドットコム・就活の教科書"
 LOGO = "シュフロ"
 SPEED = 1.3
+PITCH = 1.06  # 음높이 1음 위(밝게)
 GAP = 0.12
 
 TABLES = {
@@ -62,12 +63,12 @@ FLOWS = {
 
 SHOTS = [
     dict(id="01", scene="intro", kind="headline", label="NTTグループ", l1="初任給も残業も", l2="会社ごとに違う", kw="違う",
-         sub="NTTグループ、名前は同じでも初任給も残業もけっこう違うんです。", sfx="notify"),
+         sub="NTTグループ、名前は同じでも初任給も残業もけっこう違うんです！", sfx="notify"),
     dict(id="02", scene="intro", kind="cards", title="今日の順番", items=["大手 5社", "知る人ぞ知る子会社 5社", "地域の会社 3社"], step=True,
          sub="今日は大手5社、子会社5社、地域の会社3社の順番で紹介します。", sfx="click"),
     dict(id="03", scene="big", kind="table", table="big", sub="まずは、大手5社から見ていきます。", sfx="whoosh"),
     dict(id="04", scene="big", kind="table", table="big", hl_col=1,
-         sub="2026年入社から、主要会社の初任給は大卒で月30万円以上に。", sfx="register"),
+         sub="2026年入社から、主要会社の初任給は大卒で月30万円以上に！", sfx="register"),
     dict(id="05", scene="big", kind="table", table="big", hl_rows=[0, 1], hl_col=2,
          sub="残業はNTT東日本が月22.9時間、NTTデータが29.1時間。", sfx="click"),
     dict(id="06", scene="big", kind="flow", flow="big", sub="選考の流れは会社ごとにけっこう違います。就職偏差値が高い順に並べました。", sfx="whoosh"),
@@ -82,5 +83,5 @@ SHOTS = [
     dict(id="11", scene="region", kind="table", table="region", hl_rows=[0],
          sub="NTTデータ九州は、年間休日が120日以上。", sfx="click"),
     dict(id="12", scene="cta", kind="headline", label="保存してあとで見返そう", l1="選考の管理は", l2="シュフロで", kw="シュフロ",
-         sub="気になる会社は保存して、選考の管理はシュフロでどうぞ。", sfx="notify"),
+         sub="気になる会社は保存して、選考の管理はシュフロでどうぞ！", sfx="notify"),
 ]

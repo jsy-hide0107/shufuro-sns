@@ -205,13 +205,13 @@ def wav_len(p):
 
 def main(ep_path, work):
     ep = load_ep(ep_path)
-    SPEED = getattr(ep, "SPEED", 1.15); GAP = getattr(ep, "GAP", 0.25)
+    SPEED = getattr(ep, "SPEED", 1.15); GAP = getattr(ep, "GAP", 0.25); PITCH = getattr(ep, "PITCH", 1.0)
     os.makedirs(os.path.join(work, "fast"), exist_ok=True)
     # 1) 나레이션 1.15배 + 타이밍
     timeline = []; t = 0.4
     for sh in ep.SHOTS:
         src = os.path.join(work, "lines", sh["id"] + ".wav"); dst = os.path.join(work, "fast", sh["id"] + ".wav")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-af", f"atempo={SPEED},loudnorm=I=-14:TP=-1.5:LRA=7,silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse", "-ar", "44100", "-ac", "1", dst], check=True)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-af", f"asetrate=24000*{PITCH},aresample=24000,atempo={SPEED / PITCH:.4f},loudnorm=I=-14:TP=-1.5:LRA=7,silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse", "-ar", "44100", "-ac", "1", dst], check=True)
         dur = wav_len(dst); timeline.append((t, dur, sh)); t += dur + GAP
     total = t + 0.6
     # 2) 프레임
