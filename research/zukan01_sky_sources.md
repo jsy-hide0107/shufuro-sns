@@ -1,0 +1,11 @@
+# 企業図鑑 #01 Sky 出典 (2026-11-27 確認)
+- 28卒 IT・通信 人気2位(前年から10ランクアップ): ワンキャリア 業界別(28卒春期速報) https://webtan.impress.co.jp/n/2026/07/08/52924
+- 27卒 文系 新たにトップ10入り: マイナビ・日経 https://career-research.mynavi.jp/?p=109950
+- 売上高1,768.0億円(2026年3月期)・従業員4,670名(2026/9/1)・非上場: https://www.onecareer.jp/companies/3918 / https://job.career-tasu.jp/corp/00048465/default/
+- 事業 SKYSEA Client View / SKYMENU / 受託開発: onecareer・https://jo-katsu.com/?p=20081
+- 初任給 大卒(4年制) 月31万円(2026年4月入社): https://axxis.co.jp/magazine/56313 (公式モデル年収引用) ※28卒の金額は公式で要再確認
+- 決算賞与 29年連続支給: https://hrmos.co/pages/skygroup/jobs/1914881457225474048 (公式キャリア採用)
+- 年間休日124日・平均残業16.0h(2025年度): https://internshipguide.jp/companies/company/1380 / career-tasu
+- 「仕事が好き」と言えることは、それだけで大きな力になる。: onecareer 企業概要 / 好働力・定着率90%超(過去5年以上): https://en-gage.net/skygroup_saiyo1/
+- 28卒 好働力!体感1DAYイベント 締切2027/1/31: https://job.career-tasu.jp/corp/00048465/intern/
+- 写真: File:JR Shinagawa East Bldg.jpg by Beryllium Transistor CC BY-SA 4.0 / Pexels 8368061, 33846282(Gu Ko), 8872743, 6170652, 7652178, 7652040(Thirdman)

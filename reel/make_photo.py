@@ -41,12 +41,20 @@ def photo(work, pid):
 ys = np.linspace(0, 1, PH)[:, None, None]
 FADE = np.clip(1 - np.clip((ys - 0.62) / 0.38, 0, 1) ** 1.4, 0, 1).astype(np.float32)
 TOPSH = np.clip(0.55 + ys / 0.12 * 0.45, 0, 1).astype(np.float32)
-def draw_photo(cv, work, pid, tl):
+def draw_photo(cv, work, pid, tl, style=0, dur=6.0):
+    """움직임은 컷마다 바꿈(0 줌인 / 1 줌아웃 / 2 좌→우 / 3 우→좌). 펀치인 없음, 천천히."""
     big = photo(work, pid)
-    z = (1.12 - 0.10 * ease(tl / 0.35)) + 0.05 * min(1, tl / 6)   # 펀치인 후 느린 줌
-    cw, ch = W * 1.2 / z, PH * 1.2 / z
-    sx = big.width / (W * 1.2); cw *= sx; ch *= sx
-    l = (big.width - cw) / 2; t = (big.height - ch) * 0.42
+    p = min(1.0, max(0.0, tl / max(dur, 1.0)))
+    p = p * p * (3 - 2 * p)
+    z, dx = 1.0, 0.0
+    if style % 4 == 0: z = 1.0 + 0.07 * p
+    elif style % 4 == 1: z = 1.07 - 0.07 * p
+    elif style % 4 == 2: z, dx = 1.06, -0.04 + 0.08 * p
+    else: z, dx = 1.06, 0.04 - 0.08 * p
+    f = min(big.width / (W * 1.2), big.height / (PH * 1.2))
+    cw, ch = W * 1.2 / z * f, PH * 1.2 / z * f
+    l = (big.width - cw) / 2 + dx * big.width; t = (big.height - ch) * 0.42
+    l = min(max(0, l), big.width - cw); t = min(max(0, t), big.height - ch)
     crop = big.crop((int(l), int(t), int(l + cw), int(t + ch))).resize((W, PH), Image.BILINEAR)
     a = np.asarray(crop, np.float32) * FADE * TOPSH + np.array(BG, np.float32) * (1 - FADE)
     cv.paste(Image.fromarray(a.astype(np.uint8)), (0, 0))
@@ -113,11 +121,12 @@ def fixed(d, source, brand):
     d.text((W - 40, PH - 22), source, font=F(22, False), fill=(170, 170, 180), anchor="rs")
     d.text((W // 2, 1860), brand, font=F(30, False), fill=(120, 120, 130), anchor="mm")
 
+END = ("28卒の", "今週やること", "毎週まとめてます")
 def end_card(d, tl):
-    p = ease(tl / 0.4)
-    d.text((W // 2, 640 + (1 - p) * 40), "28卒の", font=F(70, False), fill=GRAY, anchor="mm")
-    d.text((W // 2, 780 + (1 - p) * 40), "今週やること", font=F(120), fill=YEL, anchor="mm")
-    d.text((W // 2, 930), "毎週まとめてます", font=F(64), fill=WHITE, anchor="mm")
+    p = ease(tl / 0.4); a, b, c = END
+    d.text((W // 2, 640 + (1 - p) * 40), a, font=F(70, False), fill=GRAY, anchor="mm")
+    d.text((W // 2, 780 + (1 - p) * 40), b, font=F(120), fill=YEL, anchor="mm")
+    d.text((W // 2, 930), c, font=F(64), fill=WHITE, anchor="mm")
     if tl > 0.6:
         d.rounded_rectangle((250, 1110, W - 250, 1230), 60, fill=YEL)
         d.text((W // 2, 1170), "フォローする", font=F(56), fill=BG, anchor="mm")
@@ -197,6 +206,8 @@ def lofi(n, SR, bpm=88):
 # ---------- 메인 ----------
 def main(ep_path, work):
     ep = load_ep(ep_path)
+    global END
+    END = getattr(ep, "END", END)
     os.makedirs(f"{work}/fast", exist_ok=True)
     tl = []; t = 0.15
     for L in ep.LINES:
@@ -232,12 +243,12 @@ def main(ep_path, work):
         elif L["img"] == "TABLE":
             summary_table(d, ep.TABLE, ep.TABLE_TITLE, ep.TABLE_NOTE, lt)
         elif L.get("beats"):
-            draw_photo(cv, work, ep.PHOTOS[B["img"]], blt); d = ImageDraw.Draw(cv)
+            draw_photo(cv, work, ep.PHOTOS[B["img"]], blt, bj, 3.0); d = ImageDraw.Draw(cv)
             headline(d, B["label"], *B["head"], blt)
             fixed(d, ep.SOURCE, ep.BRAND)
         else:
             # 같은 사진이 이어지면 줌 이어감, 카드 묶음은 묶음 시작 기준
-            draw_photo(cv, work, ep.PHOTOS[L["img"]], lt); d = ImageDraw.Draw(cv)
+            draw_photo(cv, work, ep.PHOTOS[L["img"]], lt, tl.index(cur), cur["du"] + ep.GAP); d = ImageDraw.Draw(cv)
             if "cards" in L:
                 cards(d, ep.CARDS, L["cards"] - 1, lt)
             elif "head" in L:
@@ -259,7 +270,7 @@ def main(ep_path, work):
         o = max(0, int(at * SR)); e = min(n, o + len(sig)); buf[o:e] += sig[:e - o]
     for k, e in enumerate(tl):
         put(vo, wav(f"{work}/fast/{e['L']['id']}.wav"), e["st"])
-        if k > 0: put(fx, sfx("whoosh", SR), e["st"] - 0.14)
+        if k > 0 and e["L"].get("sec"): put(fx, sfx("whoosh", SR) * 0.5, e["st"] - 0.14)
         if "ding" in e["L"]: put(fx, sfx("ding", SR), e["st"] + 0.05)
         if e["L"].get("slam"): put(fx, sfx("impact", SR), e["cap_t"][list(e["L"]["slam"])[0]])
         if "cards" in e["L"]: put(fx, sfx("pop", SR), e["st"])
