@@ -286,3 +286,5 @@
 3. 11/23 밤 15초 시험 판정(3·4화 vs 1·2화) → 기본 길이 결정, 다음은 훅 숫자 종류(연봉 vs 복지) 시험
 4. Metricool 11월 실제 게시 수 확인 → 남은 11월 영상 횟수 결정(대략 1~2회). 12월부터 영상 월 10편(주 2~3회)
 5. 검토: 인스타는 Meta Business Suite, TikTok은 TikTok Studio 자체 예약으로 옮겨 Metricool 한도에서 벗어나기(Threads 자체 예약이 안정된 뒤)
+- 11/27 22:42 v3로 교체(뽕수행님 피드백: 화면 색감·자막 뻑뻑함): 테마 `marker_lavender`(연보라 배경 + 노란 형광펜 강조), 자막은 faster-whisper 단어 타이밍으로 실제 나레이션에 맞추고 글자가 2~3글자 폭으로 부드럽게 밝아짐(`work/align.json` 캐시). `media/20261128_zukan01_sky_v3.mp4` 33.8초. 예약 id 변경: IG 444396392 / TikTok 444396369. 테마는 에피소드에 `THEME = "..."`(dark/navy/light/yellow/sky/green/white/white_marker/white_big/marker_navy/marker_indigo/marker_lavender).
+- 다음 과제: 사진이 정적 → Pexels 동영상(videos.pexels.com 직접 다운로드 가능, 검색 API는 키 필요) 실험, 또는 오리지널 캐릭터 해설 방식 검토.
