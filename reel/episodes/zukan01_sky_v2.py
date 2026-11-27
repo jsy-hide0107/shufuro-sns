@@ -2,10 +2,10 @@
 # 훅 레퍼런스: @takuto_syukatsu AGC편(10.4만 재생) — 첫 2초에 혜택 숫자 2개, 회사명은 끝에 공개, 말 사이 공백 없음
 # 출처: research/zukan01_sky_sources.md / 대본 reel/research/zukan01_v2_narration_script.py
 THEME = "marker_lavender"
-OUT = "20261128_zukan01_sky_v3"
+OUT = "20261128_zukan01_sky_v3_s18"
 SOURCE = "出典：ワンキャリア・Sky採用ページ ｜ 写真：Wikimedia Commons／Pexels"
 BRAND = "シュフロ企業図鑑 #01 ｜ @shufuro_acos"
-SPEED = 1.9
+SPEED = 1.8
 PITCH = 1.04
 GAP = 0.05
 TAIL = 1.6

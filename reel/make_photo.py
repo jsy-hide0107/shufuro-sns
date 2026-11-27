@@ -176,7 +176,8 @@ _wm = None
 def align(path, du, cache):
     """나레이션을 음성인식해서 '몇 초에 몇 번째 글자를 읽는지' 곡선을 만듦 (실패하면 글자 수 비례)"""
     global _wm
-    if path in cache: t, fr = cache[path]; return np.array(t), np.array(fr)
+    key = f"{path}@{du:.3f}"
+    if key in cache: t, fr = cache[key]; return np.array(t), np.array(fr)
     try:
         if _wm is None:
             from faster_whisper import WhisperModel
@@ -193,7 +194,7 @@ def align(path, du, cache):
         t.append(max(du, t[-1] + 0.01)); fr.append(1.0)
     except Exception:
         t, fr = [0.0, du], [0.0, 1.0]
-    cache[path] = (list(map(float, t)), list(map(float, fr)))
+    cache[key] = (list(map(float, t)), list(map(float, fr)))
     return np.array(t), np.array(fr)
 
 def fixed(d, source, brand):
