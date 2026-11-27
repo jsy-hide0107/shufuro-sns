@@ -29,7 +29,7 @@ def ease(x): x = min(1, max(0, x)); return 1 - (1 - x) ** 3
 def back(x):
     x = min(1, max(0, x)); c = 1.7; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2
 
-PH = 1060  # 사진 영역 높이
+PH = 1150  # 사진 영역 높이
 _ph = {}
 def photo(work, pid):
     if pid not in _ph:
@@ -59,14 +59,14 @@ def parse(s):  # "[kw]" 강조
     return out
 
 def headline(d, label, l1, l2, tl, slam=False):
-    d.text((70, 1098), label, font=F(30, False), fill=GRAY, anchor="ls")
+    d.text((70, 1190), label, font=F(30, False), fill=GRAY, anchor="ls")
     for k, line in enumerate((l1, l2)):
         p = ease((tl - k * 0.08) / 0.3)
         if p <= 0: continue
         size = 92
         parts = parse(line); plain = "".join(s for s, _ in parts)
         while tw(F(size), plain) > W - 140: size -= 4
-        f = F(size); x = 70; y = 1205 + k * 118 + (1 - p) * 30
+        f = F(size); x = 70; y = 1298 + k * 118 + (1 - p) * 30
         for s, hl in parts:
             if hl and slam and k == 1:
                 sc = back(tl / 0.35); ff = F(max(10, int(size * (0.6 + 0.4 * sc))))
@@ -74,7 +74,7 @@ def headline(d, label, l1, l2, tl, slam=False):
             else:
                 d.text((x, y), s, font=f, fill=YEL if hl else WHITE, anchor="ls"); x += tw(f, s)
     uw = 90 * ease((tl - 0.2) / 0.3)
-    if uw > 1: d.rectangle((70, 1370, 70 + uw, 1376), fill=YEL)
+    if uw > 1: d.rectangle((70, 1460, 70 + uw, 1466), fill=YEL)
 
 def cards(d, items, active, tl):
     y0 = 1080
@@ -103,7 +103,7 @@ def wrap(text, n=14):
 
 def karaoke(d, text, prog):
     f = F(54); lines = wrap(text); lit = int(len(text) * prog + 0.5); k = 0
-    y0 = 1640 - (len(lines) - 1) * 40
+    y0 = 1610 - (len(lines) - 1) * 40
     for li, line in enumerate(lines):
         x = (W - tw(f, line)) / 2; y = y0 + li * 80
         for ch in line:
@@ -122,6 +122,23 @@ def end_card(d, tl):
         d.rounded_rectangle((250, 1110, W - 250, 1230), 60, fill=YEL)
         d.text((W // 2, 1170), "フォローする", font=F(56), fill=BG, anchor="mm")
     d.text((W // 2, 1330), "@shufuro_acos", font=F(42, False), fill=GRAY, anchor="mm")
+
+def summary_table(d, rows, title, note, tl):
+    d.text((W // 2, 300), title, font=F(64), fill=YEL, anchor="mm")
+    d.text((W // 2, 380), "スクショ推奨", font=F(34, False), fill=GRAY, anchor="mm")
+    y0 = 460
+    for i, r in enumerate(rows):
+        p = ease((tl - i * 0.15) / 0.35)
+        if p <= 0: continue
+        y = y0 + i * 300 + (1 - p) * 30
+        d.rounded_rectangle((60, y, W - 60, y + 270), 28, fill=(28, 28, 36))
+        d.text((100, y + 40), r[0], font=F(30, False), fill=YEL, anchor="ls")
+        d.text((100, y + 110), r[1], font=F(60), fill=WHITE, anchor="ls")
+        for k, (lab, val) in enumerate(r[2]):
+            x = 100 + k * 300
+            d.text((x, y + 175), lab, font=F(26, False), fill=GRAY, anchor="ls")
+            d.text((x, y + 235), val, font=F(50), fill=YEL if k == 0 else WHITE, anchor="ls")
+    d.text((W // 2, 1420), note, font=F(26, False), fill=GRAY, anchor="mm")
 
 def wav(p):
     with wave.open(p) as w: return np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32) / 32768
@@ -190,7 +207,7 @@ def main(ep_path, work):
                         "loudnorm=I=-14:TP=-1.5:LRA=7", "-ar", "44100", "-ac", "1", dst], check=True)
         a = wav(dst); d = len(a) / 44100
         tl.append(dict(L=L, st=t, du=d)); t += d + ep.GAP
-    total = t + 1.4
+    total = t + getattr(ep, 'TAIL', 1.4)
     # 자막 조각 타이밍(글자 수 비례)
     for e in tl:
         caps = e["L"]["caps"] or [""]; w = [max(1, len(c)) for c in caps]; cum = np.cumsum([0] + w) / sum(w)
@@ -205,8 +222,19 @@ def main(ep_path, work):
             if tt >= e["st"] - 0.05: cur = e
         L = cur["L"]; lt = tt - cur["st"]
         cv = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(cv)
-        if L["img"] == "END":
-            end_card(d, lt)
+        bj = 0
+        if L.get("beats"):
+            bj = max([i for i, c0 in enumerate(cur["cap_t"]) if tt >= c0 - 0.05] or [0])
+            B = L["beats"][min(bj, len(L["beats"]) - 1)]
+            blt = tt - cur["cap_t"][bj]
+        if L["img"] == "END" or tt > tl[-1]["st"] + tl[-1]["du"] + 0.3:
+            end_card(d, tt - (tl[-1]["st"] + tl[-1]["du"] + 0.3) if L["img"] != "END" else lt)
+        elif L["img"] == "TABLE":
+            summary_table(d, ep.TABLE, ep.TABLE_TITLE, ep.TABLE_NOTE, lt)
+        elif L.get("beats"):
+            draw_photo(cv, work, ep.PHOTOS[B["img"]], blt); d = ImageDraw.Draw(cv)
+            headline(d, B["label"], *B["head"], blt)
+            fixed(d, ep.SOURCE, ep.BRAND)
         else:
             # 같은 사진이 이어지면 줌 이어감, 카드 묶음은 묶음 시작 기준
             draw_photo(cv, work, ep.PHOTOS[L["img"]], lt); d = ImageDraw.Draw(cv)
@@ -216,7 +244,7 @@ def main(ep_path, work):
                 headline(d, L["label"], *L["head"], lt, slam=bool(L.get("slam")))
             fixed(d, ep.SOURCE, ep.BRAND)
         # 자막
-        caps = L["caps"]
+        caps = L["caps"] if tt <= tl[-1]["st"] + tl[-1]["du"] + 0.3 else []
         if caps:
             j = max([i for i, c0 in enumerate(cur["cap_t"]) if tt >= c0 - 0.05] or [0])
             nxt = cur["cap_t"][j + 1] if j + 1 < len(caps) else cur["st"] + cur["du"]
@@ -235,6 +263,8 @@ def main(ep_path, work):
         if "ding" in e["L"]: put(fx, sfx("ding", SR), e["st"] + 0.05)
         if e["L"].get("slam"): put(fx, sfx("impact", SR), e["cap_t"][list(e["L"]["slam"])[0]])
         if "cards" in e["L"]: put(fx, sfx("pop", SR), e["st"])
+        for c0 in e["cap_t"][1:] if e["L"].get("beats") else []: put(fx, sfx("whoosh", SR) * 0.6, c0 - 0.1)
+        if e["L"]["img"] == "TABLE": put(fx, sfx("ding", SR), e["st"] + 0.1)
     env = np.convolve((np.abs(vo) > 0.02).astype(np.float32), np.ones(int(0.25 * SR)) / int(0.25 * SR), "same")
     duck = 1 - 0.55 * np.clip(env * 3, 0, 1)
     bg = lofi(n, SR) * 0.30 * duck
