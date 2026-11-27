@@ -276,6 +276,7 @@
 - #01 Sky: `reel/episodes/zukan01_sky.py`, 대본 `reel/research/zukan01_narration_script.py`, 출처 `research/zukan01_sky_sources.md`, 사진 `reel/photos_zukan01/`(본사 = Wikimedia CC BY-SA 4.0 크레딧 필수) → `media/20261128_zukan01_sky.mp4` 55초
 - 회사 선정 기준: 취준생 인기 랭킹 상위 + 일반 지명도 낮음(비상장·BtoB 등), 랭킹 출처 명시
 - 예약(11/27 15:43 시간 변경, Metricool 추천 시간 기준 — TikTok 금 18시·토 10시가 피크): 6화 IG 11/27 17:30 (443984426) / TikTok 18:00 (443984419). #01 Sky IG 11/28 09:30 (443984447) / TikTok 10:00 (443984435). 비교는 조회수가 아니라 비율(좋아요·저장/조회, 평균 시청)로. AI 표시 켬. 11월 Metricool 사용 20/20 예정 → 11/28 자동 작업은 "오늘 예약 있음"으로 건너뜀, 11/29 자동 작업분은 draft
+- 11/27 21:30 v2로 교체(뽕수행님 피드백: 1.9배속·초임 등 먼저·공백 최소·훅 강화, 레퍼런스 @takuto_syukatsu AGC편): `reel/episodes/zukan01_sky_v2.py` → `media/20261128_zukan01_sky_v2.mp4` 28.4초(SPEED 1.9, GAP 0.05). 첫 줄 「初任給月31万円・年間休日124日」, 회사명은 끝에 공개. 예약 id 변경: IG 444314305 / TikTok 444314272
 - 미확인: 28卒 초임(2026년 4월 실적 31만엔으로 표기)
 
 ## 8. 다음 우선순위
