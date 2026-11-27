@@ -34,9 +34,13 @@ THEMES = {
     "green": dict(BG=(22, 96, 66), YEL=(255, 220, 80), WHITE=(255, 255, 255), GRAY=(170, 210, 190), DIM=(90, 140, 115),
                   OFF=(210, 235, 222), RULE=(50, 124, 92), UNLIT=(104, 156, 130), SRCC=(200, 228, 214), BRANDC=(150, 196, 172),
                   CARD=(34, 116, 82), BTNTXT=(22, 96, 66), GRADE=(1.08, 0.05, 1.12, 0.06), TOP=0.8),
+    "white": dict(BG=(255, 255, 255), WHITE=(20, 22, 30), GRAY=(120, 122, 132), DIM=(190, 190, 196), OFF=(80, 82, 94), RULE=(232, 232, 236), UNLIT=(200, 200, 206), SRCC=(130, 130, 140), BRANDC=(150, 150, 160), CARD=(244, 245, 248), BTNTXT=(255, 255, 255), GRADE=(1.06, 0.04, 1.12, 0.06), TOP=1.0, YEL=(226, 44, 44), EMPH='color'),
+    "white_marker": dict(BG=(255, 255, 255), WHITE=(20, 22, 30), GRAY=(120, 122, 132), DIM=(190, 190, 196), OFF=(80, 82, 94), RULE=(232, 232, 236), UNLIT=(200, 200, 206), SRCC=(130, 130, 140), BRANDC=(150, 150, 160), CARD=(244, 245, 248), BTNTXT=(255, 255, 255), GRADE=(1.06, 0.04, 1.12, 0.06), TOP=1.0, YEL=(20, 22, 30), MARK=(255, 222, 70), EMPH='marker'),
+    "white_big": dict(BG=(255, 255, 255), WHITE=(20, 22, 30), GRAY=(120, 122, 132), DIM=(190, 190, 196), OFF=(80, 82, 94), RULE=(232, 232, 236), UNLIT=(200, 200, 206), SRCC=(130, 130, 140), BRANDC=(150, 150, 160), CARD=(244, 245, 248), BTNTXT=(255, 255, 255), GRADE=(1.06, 0.04, 1.12, 0.06), TOP=1.0, YEL=(28, 92, 232), EMPH='big'),
 }
 def apply_theme(name):
     global TOPSH
+    globals().update(dict(EMPH="color", MARK=(255, 222, 70)))  # 강조 방식: color / marker(형광펜) / big(크게)
     globals().update(THEMES[name])
     TOPSH = np.clip(TOP + ys / 0.12 * (1 - TOP), 0, 1).astype(np.float32)
 def grade(a):
@@ -105,21 +109,29 @@ def parse(s):  # "[kw]" 강조
 
 def headline(d, label, l1, l2, tl, slam=False):
     d.text((70, 1190), label, font=F(30, False), fill=GRAY, anchor="ls")
+    kb = 1.2 if EMPH == "big" else 1.0
     for k, line in enumerate((l1, l2)):
         p = ease((tl - k * 0.08) / 0.3)
         if p <= 0: continue
         size = 92
-        parts = parse(line); plain = "".join(s for s, _ in parts)
-        while tw(F(size), plain) > W - 140: size -= 4
-        f = F(size); x = 70; y = 1298 + k * 118 + (1 - p) * 30
+        parts = parse(line)
+        def width(sz): return sum(tw(F(int(sz * (kb if h else 1))), s) for s, h in parts)
+        while width(size) > W - 140: size -= 4
+        x = 70; y = 1298 + k * 118 + (1 - p) * 30
         for s, hl in parts:
+            f = F(int(size * kb)) if hl else F(size)
             if hl and slam and k == 1:
-                sc = back(tl / 0.35); ff = F(max(10, int(size * (0.6 + 0.4 * sc))))
-                d.text((x, y), s, font=ff, fill=YEL, anchor="ls"); x += tw(ff, s)
+                sc = back(tl / 0.35); f = F(max(10, int(size * kb * (0.6 + 0.4 * sc))))
+            if hl and EMPH == "marker":
+                mw = tw(f, s) * ease((tl - 0.15 - k * 0.08) / 0.35)
+                if mw > 1: d.rectangle((x - 6, y - size * 0.42, x - 6 + mw + 12, y + 10), fill=MARK)
+                d.text((x, y), s, font=f, fill=WHITE, anchor="ls")
             else:
-                d.text((x, y), s, font=f, fill=YEL if hl else WHITE, anchor="ls"); x += tw(f, s)
-    uw = 90 * ease((tl - 0.2) / 0.3)
-    if uw > 1: d.rectangle((70, 1460, 70 + uw, 1466), fill=YEL)
+                d.text((x, y), s, font=f, fill=YEL if hl else WHITE, anchor="ls")
+            x += tw(f, s)
+    if EMPH != "marker":
+        uw = 90 * ease((tl - 0.2) / 0.3)
+        if uw > 1: d.rectangle((70, 1460, 70 + uw, 1466), fill=YEL)
 
 def cards(d, items, active, tl):
     y0 = 1080
@@ -170,6 +182,7 @@ def end_card(d, tl):
     d.text((W // 2, 1330), "@shufuro_acos", font=F(42, False), fill=GRAY, anchor="mm")
 
 def summary_table(d, rows, title, note, tl):
+    if EMPH == "marker": d.rectangle((W // 2 - tw(F(64), title) / 2 - 8, 304, W // 2 + tw(F(64), title) / 2 + 8, 336), fill=MARK)
     d.text((W // 2, 300), title, font=F(64), fill=YEL, anchor="mm")
     d.text((W // 2, 380), "スクショ推奨", font=F(34, False), fill=GRAY, anchor="mm")
     y0 = 460
@@ -183,7 +196,9 @@ def summary_table(d, rows, title, note, tl):
         for k, (lab, val) in enumerate(r[2]):
             x = 100 + k * 300
             d.text((x, y + 175), lab, font=F(26, False), fill=GRAY, anchor="ls")
-            d.text((x, y + 235), val, font=F(50), fill=YEL if k == 0 else WHITE, anchor="ls")
+            if k == 0 and EMPH == "marker":
+                d.rectangle((x - 4, y + 205, x + tw(F(50), val) + 4, y + 242), fill=MARK)
+            d.text((x, y + 235), val, font=F(50), fill=(WHITE if EMPH == "marker" else YEL) if k == 0 else WHITE, anchor="ls")
     d.text((W // 2, 1420), note, font=F(26, False), fill=GRAY, anchor="mm")
 
 def wav(p):
