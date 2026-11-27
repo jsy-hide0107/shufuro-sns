@@ -162,12 +162,39 @@ def wrap(text, n=14):
     return out
 
 def karaoke(d, text, prog):
-    f = F(54); lines = wrap(text); lit = int(len(text) * prog + 0.5); k = 0
+    """글자가 하나씩 '탁' 켜지지 않고, 2~3글자 폭으로 부드럽게 번지듯 밝아짐"""
+    f = F(54); lines = wrap(text); litf = len(text) * prog; k = 0
     y0 = 1610 - (len(lines) - 1) * 40
     for li, line in enumerate(lines):
         x = (W - tw(f, line)) / 2; y = y0 + li * 80
         for ch in line:
-            d.text((x, y), ch, font=f, fill=WHITE if k < lit else UNLIT, anchor="lm"); x += tw(f, ch); k += 1
+            a = min(1.0, max(0.0, (litf - k + 1.2) / 2.4)); a = a * a * (3 - 2 * a)
+            col = tuple(int(UNLIT[i] + (WHITE[i] - UNLIT[i]) * a) for i in range(3))
+            d.text((x, y), ch, font=f, fill=col, anchor="lm"); x += tw(f, ch); k += 1
+
+_wm = None
+def align(path, du, cache):
+    """나레이션을 음성인식해서 '몇 초에 몇 번째 글자를 읽는지' 곡선을 만듦 (실패하면 글자 수 비례)"""
+    global _wm
+    if path in cache: t, fr = cache[path]; return np.array(t), np.array(fr)
+    try:
+        if _wm is None:
+            from faster_whisper import WhisperModel
+            _wm = WhisperModel("small", device="cpu", compute_type="int8")
+        x = wav(path); x = np.interp(np.arange(0, len(x), 44100 / 16000), np.arange(len(x)), x).astype(np.float32)
+        segs, _ = _wm.transcribe(x, language="ja", word_timestamps=True, beam_size=1)
+        ws = [(w.start, w.end, len(w.word.strip())) for sg in segs for w in sg.words if w.word.strip()]
+        tot = sum(n for *_, n in ws)
+        if not ws or tot == 0: raise ValueError
+        t, fr, c = [0.0], [0.0], 0
+        for a, b, n in ws:
+            t.append(max(a, t[-1])); fr.append(c / tot); c += n
+            t.append(max(b, t[-1] + 0.01)); fr.append(c / tot)
+        t.append(max(du, t[-1] + 0.01)); fr.append(1.0)
+    except Exception:
+        t, fr = [0.0, du], [0.0, 1.0]
+    cache[path] = (list(map(float, t)), list(map(float, fr)))
+    return np.array(t), np.array(fr)
 
 def fixed(d, source, brand):
     d.text((W - 40, PH - 22), source, font=F(22, False), fill=SRCC, anchor="rs")
@@ -275,10 +302,15 @@ def main(ep_path, work):
         a = wav(dst); d = len(a) / 44100
         tl.append(dict(L=L, st=t, du=d)); t += d + ep.GAP
     total = t + getattr(ep, 'TAIL', 1.4)
-    # 자막 조각 타이밍(글자 수 비례)
+    # 자막 타이밍: 실제 나레이션 음성에 맞춤 (align.json 에 캐시)
+    import json
+    cp = f"{work}/align.json"; cache = json.load(open(cp)) if os.path.exists(cp) else {}
     for e in tl:
         caps = e["L"]["caps"] or [""]; w = [max(1, len(c)) for c in caps]; cum = np.cumsum([0] + w) / sum(w)
-        e["cap_t"] = [e["st"] + e["du"] * c for c in cum[:-1]]
+        at, af = align(f"{work}/fast/{e['L']['id']}.wav", e["du"], cache)
+        e["at"], e["af"], e["cum"] = at, af, cum
+        e["cap_t"] = [e["st"] + float(np.interp(c, af, at)) if c > 0 else e["st"] for c in cum[:-1]]
+    json.dump(cache, open(cp, "w"))
     nfr = int(total * FPS)
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                            "-c:v", "libx264", "-preset", "veryfast", "-crf", "19", "-pix_fmt", "yuv420p", f"{work}/video.mp4"], stdin=subprocess.PIPE)
@@ -313,9 +345,9 @@ def main(ep_path, work):
         # 자막
         caps = L["caps"] if tt <= tl[-1]["st"] + tl[-1]["du"] + 0.3 else []
         if caps:
-            j = max([i for i, c0 in enumerate(cur["cap_t"]) if tt >= c0 - 0.05] or [0])
-            nxt = cur["cap_t"][j + 1] if j + 1 < len(caps) else cur["st"] + cur["du"]
-            prog = (tt - cur["cap_t"][j]) / max(0.2, nxt - cur["cap_t"][j])
+            P = float(np.interp(tt - cur["st"] + 0.06, cur["at"], cur["af"]))  # 살짝 앞서 가게(+0.06초)
+            cum = cur["cum"]; j = int(min(len(caps) - 1, max(0, np.searchsorted(cum, P, side="right") - 1)))
+            prog = (P - cum[j]) / max(1e-6, cum[j + 1] - cum[j])
             karaoke(d, caps[j], min(1, max(0, prog)))
         ff.stdin.write(cv.tobytes())
     ff.stdin.close(); ff.wait()

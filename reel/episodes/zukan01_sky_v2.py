@@ -1,7 +1,8 @@
 # シュフロ企業図鑑 #01 Sky v2 (2026-11-27 21:30) — 뽕수행님 피드백: 1.9배속, 취준생이 궁금한 것(초임·휴일) 먼저, 구간 공백 최소화, 훅 강화
 # 훅 레퍼런스: @takuto_syukatsu AGC편(10.4만 재생) — 첫 2초에 혜택 숫자 2개, 회사명은 끝에 공개, 말 사이 공백 없음
 # 출처: research/zukan01_sky_sources.md / 대본 reel/research/zukan01_v2_narration_script.py
-OUT = "20261128_zukan01_sky_v2"
+THEME = "marker_lavender"
+OUT = "20261128_zukan01_sky_v3"
 SOURCE = "出典：ワンキャリア・Sky採用ページ ｜ 写真：Wikimedia Commons／Pexels"
 BRAND = "シュフロ企業図鑑 #01 ｜ @shufuro_acos"
 SPEED = 1.9
