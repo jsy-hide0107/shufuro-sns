@@ -13,7 +13,34 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 W, H, FPS = 1080, 1920, 30
-BG = (13, 13, 17); YEL = (255, 206, 64); WHITE = (255, 255, 255); GRAY = (138, 138, 148); DIM = (88, 88, 98)
+# ---- 색 테마 (에피소드에서 THEME = "dark" | "navy" | "light" 로 고름, 기본 dark) ----
+# WHITE = 본문 글자색(라이트 테마에선 진한 남색), YEL = 강조색
+THEMES = {
+    "dark":  dict(BG=(13, 13, 17), YEL=(255, 206, 64), WHITE=(255, 255, 255), GRAY=(138, 138, 148), DIM=(88, 88, 98),
+                  OFF=(200, 200, 208), RULE=(48, 48, 56), UNLIT=(92, 92, 102), SRCC=(170, 170, 180), BRANDC=(120, 120, 130),
+                  CARD=(28, 28, 36), BTNTXT=(13, 13, 17), GRADE=(1.0, 0.0, 1.0, 0.0), TOP=0.55),
+    "navy":  dict(BG=(18, 32, 64), YEL=(255, 210, 80), WHITE=(255, 255, 255), GRAY=(160, 176, 205), DIM=(100, 118, 155),
+                  OFF=(210, 220, 238), RULE=(48, 66, 104), UNLIT=(110, 128, 165), SRCC=(200, 210, 228), BRANDC=(150, 166, 198),
+                  CARD=(30, 48, 88), BTNTXT=(18, 32, 64), GRADE=(1.08, 0.05, 1.15, 0.06), TOP=0.8),
+    "light": dict(BG=(247, 245, 240), YEL=(255, 106, 61), WHITE=(24, 28, 40), GRAY=(110, 112, 122), DIM=(170, 170, 178),
+                  OFF=(90, 92, 104), RULE=(222, 220, 214), UNLIT=(196, 196, 202), SRCC=(120, 120, 128), BRANDC=(140, 140, 150),
+                  CARD=(255, 255, 255), BTNTXT=(255, 255, 255), GRADE=(1.1, 0.06, 1.15, 0.08), TOP=0.95),
+}
+def apply_theme(name):
+    global TOPSH
+    globals().update(THEMES[name])
+    TOPSH = np.clip(TOP + ys / 0.12 * (1 - TOP), 0, 1).astype(np.float32)
+def grade(a):
+    """사진 색감 보정: (밝기, 따뜻함, 채도, 섀도 리프트)"""
+    br, warm, sat, lift = GRADE
+    if (br, warm, sat, lift) == (1.0, 0.0, 1.0, 0.0): return a
+    a = a / 255.0
+    a = lift + (1 - lift) * a                     # 검은 부분을 살짝 들어 올려 답답함 제거
+    a = a * br
+    a = a * np.array([1 + warm, 1 + warm * 0.3, 1 - warm], np.float32)
+    g = a.mean(axis=2, keepdims=True); a = g + (a - g) * sat
+    return np.clip(a, 0, 1) * 255.0
+BG = (13, 13, 17)
 FB = "/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc"
 FM = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
 _fc = {}
@@ -41,6 +68,7 @@ def photo(work, pid):
 ys = np.linspace(0, 1, PH)[:, None, None]
 FADE = np.clip(1 - np.clip((ys - 0.62) / 0.38, 0, 1) ** 1.4, 0, 1).astype(np.float32)
 TOPSH = np.clip(0.55 + ys / 0.12 * 0.45, 0, 1).astype(np.float32)
+apply_theme("dark")
 def draw_photo(cv, work, pid, tl, style=0, dur=6.0):
     """움직임은 컷마다 바꿈(0 줌인 / 1 줌아웃 / 2 좌→우 / 3 우→좌). 펀치인 없음, 천천히."""
     big = photo(work, pid)
@@ -56,7 +84,7 @@ def draw_photo(cv, work, pid, tl, style=0, dur=6.0):
     l = (big.width - cw) / 2 + dx * big.width; t = (big.height - ch) * 0.42
     l = min(max(0, l), big.width - cw); t = min(max(0, t), big.height - ch)
     crop = big.crop((int(l), int(t), int(l + cw), int(t + ch))).resize((W, PH), Image.BILINEAR)
-    a = np.asarray(crop, np.float32) * FADE * TOPSH + np.array(BG, np.float32) * (1 - FADE)
+    a = grade(np.asarray(crop, np.float32)) * FADE * TOPSH + np.array(BG, np.float32) * (1 - FADE)
     cv.paste(Image.fromarray(a.astype(np.uint8)), (0, 0))
 
 def tw(f, s): return f.getlength(s)
@@ -94,9 +122,9 @@ def cards(d, items, active, tl):
             d.text((140, y + 56), "・ ・ ・", font=F(44), fill=DIM, anchor="ls")
         else:
             p = ease(tl / 0.3) if on else 1
-            d.text((140 + (1 - p) * 40, y + 58), title, font=F(54 if on else 46), fill=YEL if on else (200, 200, 208), anchor="ls")
+            d.text((140 + (1 - p) * 40, y + 58), title, font=F(54 if on else 46), fill=YEL if on else OFF, anchor="ls")
             d.text((W - 70, y + 50), sub, font=F(28, False), fill=YEL if on else GRAY, anchor="rs")
-        d.line((70, y + 92, W - 70, y + 92), fill=(48, 48, 56), width=2)
+        d.line((70, y + 92, W - 70, y + 92), fill=RULE, width=2)
 
 def wrap(text, n=14):
     out, cur = [], ""
@@ -115,11 +143,11 @@ def karaoke(d, text, prog):
     for li, line in enumerate(lines):
         x = (W - tw(f, line)) / 2; y = y0 + li * 80
         for ch in line:
-            d.text((x, y), ch, font=f, fill=WHITE if k < lit else (92, 92, 102), anchor="lm"); x += tw(f, ch); k += 1
+            d.text((x, y), ch, font=f, fill=WHITE if k < lit else UNLIT, anchor="lm"); x += tw(f, ch); k += 1
 
 def fixed(d, source, brand):
-    d.text((W - 40, PH - 22), source, font=F(22, False), fill=(170, 170, 180), anchor="rs")
-    d.text((W // 2, 1860), brand, font=F(30, False), fill=(120, 120, 130), anchor="mm")
+    d.text((W - 40, PH - 22), source, font=F(22, False), fill=SRCC, anchor="rs")
+    d.text((W // 2, 1860), brand, font=F(30, False), fill=BRANDC, anchor="mm")
 
 END = ("28卒の", "今週やること", "毎週まとめてます")
 def end_card(d, tl):
@@ -129,7 +157,7 @@ def end_card(d, tl):
     d.text((W // 2, 930), c, font=F(64), fill=WHITE, anchor="mm")
     if tl > 0.6:
         d.rounded_rectangle((250, 1110, W - 250, 1230), 60, fill=YEL)
-        d.text((W // 2, 1170), "フォローする", font=F(56), fill=BG, anchor="mm")
+        d.text((W // 2, 1170), "フォローする", font=F(56), fill=BTNTXT, anchor="mm")
     d.text((W // 2, 1330), "@shufuro_acos", font=F(42, False), fill=GRAY, anchor="mm")
 
 def summary_table(d, rows, title, note, tl):
@@ -140,7 +168,7 @@ def summary_table(d, rows, title, note, tl):
         p = ease((tl - i * 0.15) / 0.35)
         if p <= 0: continue
         y = y0 + i * 300 + (1 - p) * 30
-        d.rounded_rectangle((60, y, W - 60, y + 270), 28, fill=(28, 28, 36))
+        d.rounded_rectangle((60, y, W - 60, y + 270), 28, fill=CARD)
         d.text((100, y + 40), r[0], font=F(30, False), fill=YEL, anchor="ls")
         d.text((100, y + 110), r[1], font=F(60), fill=WHITE, anchor="ls")
         for k, (lab, val) in enumerate(r[2]):
@@ -208,6 +236,7 @@ def main(ep_path, work):
     ep = load_ep(ep_path)
     global END
     END = getattr(ep, "END", END)
+    apply_theme(getattr(ep, "THEME", "dark"))
     os.makedirs(f"{work}/fast", exist_ok=True)
     tl = []; t = 0.15
     for L in ep.LINES:
