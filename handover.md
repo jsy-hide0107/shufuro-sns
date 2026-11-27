@@ -289,3 +289,4 @@
 - 11/27 22:42 v3로 교체(뽕수행님 피드백: 화면 색감·자막 뻑뻑함): 테마 `marker_lavender`(연보라 배경 + 노란 형광펜 강조), 자막은 faster-whisper 단어 타이밍으로 실제 나레이션에 맞추고 글자가 2~3글자 폭으로 부드럽게 밝아짐(`work/align.json` 캐시). `media/20261128_zukan01_sky_v3.mp4` 33.8초. 예약 id 변경: IG 444396392 / TikTok 444396369. 테마는 에피소드에 `THEME = "..."`(dark/navy/light/yellow/sky/green/white/white_marker/white_big/marker_navy/marker_indigo/marker_lavender).
 - 다음 과제: 사진이 정적 → Pexels 동영상(videos.pexels.com 직접 다운로드 가능, 검색 API는 키 필요) 실험, 또는 오리지널 캐릭터 해설 방식 검토.
 - 11/27 23:30 속도 1.9→1.8로 낮춤(뽕수행님 요청): `media/20261128_zukan01_sky_v3_s18.mp4` 35.5초로 예약 교체. 1.7배속판 `_s17.mp4`(37.5초)도 있음. 자막 정렬 캐시 키에 길이 포함하도록 수정.
+- 11/27 23:40 **v3 계열은 잘못된 음성으로 렌더링됨**(작업 폴더를 v1 음성이 든 /tmp/z1v로 지정한 실수 → 자막과 나레이션 불일치). v3/_s17/_s18 삭제. 올바른 v2 음성 폴더 `/tmp/z1b`로 1.7배속 재렌더 → `media/20261128_zukan01_sky_v4.mp4` 31.5초, whisper로 9줄 모두 자막=나레이션 일치 확인 후 예약 교체. **주의: Sky v2 대본 음성 = /tmp/z1b, v1 음성 = /tmp/z1v.** 기본 속도 1.7.
